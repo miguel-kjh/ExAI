@@ -14,8 +14,6 @@ class MNISTModel(pl.LightningModule):
         self.layer_3 = nn.Linear(256, 10)
         self.lr = lr
         self.num_classes = num_classes
-
-        self.activations = {'layer_1': [], 'layer_2': [], 'layer_3': []}
         
         # metrics
         self.train_acc = torchmetrics.Accuracy(num_classes=self.num_classes, task='multiclass')
@@ -28,19 +26,18 @@ class MNISTModel(pl.LightningModule):
     def forward(self, x, record_activations=False):
         x = x.view(x.size(0), -1)
         x = self.layer_1(x)
-        if record_activations:
-            self.activations['layer_1'].append(x.cpu().detach())
-        x = F.relu(x)
+        x_layer1 = F.relu(x)
 
-        x = self.layer_2(x)
-        if record_activations:
-            self.activations['layer_2'].append(x.cpu().detach())
-        x = F.relu(x)
+        x = self.layer_2(x_layer1)
+        x_layer2 = F.relu(x)
 
-        x = self.layer_3(x)
+        x = self.layer_3(x_layer2)
+        x_layer3 = F.log_softmax(x, dim=1)
+
         if record_activations:
-            self.activations['layer_3'].append(x.cpu().detach())
-        return F.log_softmax(x, dim=1)
+            return x_layer3, [x_layer1, x_layer2, x_layer3]
+
+        return x_layer3
     
     def training_step(self, batch, batch_idx):
         x, y = batch
