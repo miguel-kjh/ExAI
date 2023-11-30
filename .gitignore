@@ -1,0 +1,5 @@
+MNIST/
+lightning_logs/
+exai/
+__pycache__/
+models/
