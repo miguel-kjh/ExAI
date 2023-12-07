@@ -27,7 +27,7 @@ class MNISTModelWithBottelNeck(MLP):
         #x_layer1 = F.relu(x)
 
         x_layer2 = self.layer_2(x_layer1)
-        x_layer2 = F.relu(x)
+        x_layer2 = F.relu(x_layer2)
 
         x_layer3 = self.layer_3(x_layer2)
         #x_layer3 = F.relu(x)
