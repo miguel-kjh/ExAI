@@ -1,20 +1,22 @@
-import os
-import torch
-from torch import nn
-from torch.nn import functional as F
 import pytorch_lightning as pl
+import torch
 import torchmetrics
+from torch.nn import functional as F
 
 
-class MNISTModel(pl.LightningModule):
+class MLP(pl.LightningModule):
     def __init__(self, num_classes=10, lr=1e-3):
-        super(MNISTModel, self).__init__()
-        self.layer_1 = nn.Linear(28 * 28, 128)
-        self.layer_2 = nn.Linear(128, 256)
-        self.layer_3 = nn.Linear(256, 10)
+        """
+        Multi-Layer Perceptron model for classification.
+
+        Args:
+            num_classes (int): Number of classes for classification. Default is 10.
+            lr (float): Learning rate for the optimizer. Default is 1e-3.
+        """
+        super(MLP, self).__init__()
         self.lr = lr
         self.num_classes = num_classes
-        
+
         # metrics
         self.train_acc = torchmetrics.Accuracy(num_classes=self.num_classes, task='multiclass')
         self.val_acc = torchmetrics.Accuracy(num_classes=self.num_classes, task='multiclass')
@@ -23,23 +25,17 @@ class MNISTModel(pl.LightningModule):
         self.recall = torchmetrics.Recall(num_classes=self.num_classes, average='macro', task='multiclass')
         self.f1 = torchmetrics.F1Score(num_classes=self.num_classes, average='macro', task='multiclass')
 
-    def forward(self, x, record_activations=False):
-        x = x.view(x.size(0), -1)
-        x = self.layer_1(x)
-        x_layer1 = F.relu(x)
-
-        x = self.layer_2(x_layer1)
-        x_layer2 = F.relu(x)
-
-        x = self.layer_3(x_layer2)
-        x_layer3 = F.log_softmax(x, dim=1)
-
-        if record_activations:
-            return x_layer3, [x_layer1, x_layer2, x_layer3]
-
-        return x_layer3
-    
     def training_step(self, batch, batch_idx):
+        """
+        Training step of the model.
+
+        Args:
+            batch (tuple): Tuple containing input tensor and target tensor.
+            batch_idx (int): Index of the current batch.
+
+        Returns:
+            torch.Tensor: Loss tensor.
+        """
         x, y = batch
         logits = self(x)
         loss = F.nll_loss(logits, y)
@@ -48,6 +44,13 @@ class MNISTModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
+        """
+        Validation step of the model.
+
+        Args:
+            batch (tuple): Tuple containing input tensor and target tensor.
+            batch_idx (int): Index of the current batch.
+        """
         x, y = batch
         logits = self(x)
         loss = F.nll_loss(logits, y)
@@ -55,6 +58,13 @@ class MNISTModel(pl.LightningModule):
         self.log('val_acc', self.val_acc(logits, y), prog_bar=True)
 
     def test_step(self, batch, batch_idx):
+        """
+        Test step of the model.
+
+        Args:
+            batch (tuple): Tuple containing input tensor and target tensor.
+            batch_idx (int): Index of the current batch.
+        """
         x, y = batch
         logits = self(x)
         loss = F.nll_loss(logits, y)
@@ -63,6 +73,12 @@ class MNISTModel(pl.LightningModule):
         self.log('precision', self.precision(logits, y), prog_bar=True)
         self.log('recall', self.recall(logits, y), prog_bar=True)
         self.log('f1', self.f1(logits, y), prog_bar=True)
-    
+
     def configure_optimizers(self):
+        """
+        Configure the optimizer for training.
+
+        Returns:
+            torch.optim.Optimizer: Optimizer object.
+        """
         return torch.optim.Adam(self.parameters(), lr=self.lr)
