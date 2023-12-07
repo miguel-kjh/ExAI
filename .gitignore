@@ -3,4 +3,4 @@ lightning_logs/
 exai/
 __pycache__/
 models/
-activations/
+#activations/
