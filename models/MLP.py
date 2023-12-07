@@ -1,3 +1,5 @@
+from matplotlib import pyplot as plt
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torchmetrics
@@ -42,6 +44,38 @@ class MLP(pl.LightningModule):
         self.log('train_loss', loss, prog_bar=True)
         self.log('train_acc', self.train_acc(logits, y), prog_bar=True)
         return loss
+    
+    def custom_histogram_adder(self):
+        for name,params in self.named_parameters():           
+            self.logger.experiment.add_histogram(name,params,self.current_epoch)
+
+    def makegrid(output,numrows):
+        outer=(torch.Tensor.cpu(output).detach())
+        plt.figure(figsize=(20,5))
+        b=np.array([]).reshape(0,outer.shape[2])
+        c=np.array([]).reshape(numrows*outer.shape[2],0)
+        i=0
+        j=0
+        while(i < outer.shape[1]):
+            img=outer[0][i]
+            b=np.concatenate((img,b),axis=0)
+            j+=1
+            if(j==numrows):
+                c=np.concatenate((c,b),axis=1)
+                b=np.array([]).reshape(0,outer.shape[2])
+                j=0
+            i+=1
+        return c
+    
+    def on_train_start(self):
+        sample_input = torch.rand((1,1,28,28)).to(self.device)
+        self.logger.experiment.add_graph(self, sample_input)
+    
+    def showActivations(self, x):
+        pass
+
+    def on_train_epoch_end(self) -> None:
+        self.custom_histogram_adder()
 
     def validation_step(self, batch, batch_idx):
         """

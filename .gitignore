@@ -4,3 +4,5 @@ exai/
 __pycache__/
 #models/
 #activations/
+csv_logs/
+tb_logs/
