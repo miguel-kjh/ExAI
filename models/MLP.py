@@ -46,8 +46,11 @@ class MLP(pl.LightningModule):
         return loss
     
     def custom_histogram_adder(self):
-        for name,params in self.named_parameters():           
-            self.logger.experiment.add_histogram(name,params,self.current_epoch)
+        try:
+            for name,params in self.named_parameters():           
+                self.logger.experiment.add_histogram(name,params,self.current_epoch)
+        except Exception as e:
+            print("Failed to save weights histogram: {}".format(e))
 
     def makegrid(output,numrows):
         outer=(torch.Tensor.cpu(output).detach())
@@ -68,8 +71,11 @@ class MLP(pl.LightningModule):
         return c
     
     def on_train_start(self):
-        sample_input = torch.rand((1,1,28,28)).to(self.device)
-        self.logger.experiment.add_graph(self, sample_input)
+        try:
+            sample_input = torch.rand((1,1,28,28)).to(self.device)
+            self.logger.experiment.add_graph(self, sample_input)
+        except Exception as e:
+            print("Failed to save model graph: {}".format(e))
     
     def showActivations(self, x):
         pass
