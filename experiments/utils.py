@@ -1,4 +1,5 @@
 import os
+import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import datasets, transforms
 from torch.utils.data.dataset import Subset
@@ -7,10 +8,27 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-
+import torch.nn as nn
 
 
 class FilteredMNIST(Dataset):
+    """
+    A custom dataset class that filters the MNIST dataset based on specified classes.
+
+    Args:
+        mnist_dataset (Dataset): The original MNIST dataset.
+        classes_to_include (list): A list of classes to include in the filtered dataset.
+
+    Attributes:
+        mnist_dataset (Dataset): The original MNIST dataset.
+        filtered_indices (list): A list of indices corresponding to the filtered dataset.
+
+    Methods:
+        __len__(): Returns the length of the filtered dataset.
+        __getitem__(idx): Returns a specific item from the filtered dataset.
+
+    """
+
     def __init__(self, mnist_dataset, classes_to_include):
         self.mnist_dataset = mnist_dataset
         self.filtered_indices = [i for i, (image, label) in enumerate(mnist_dataset) if label in classes_to_include]
@@ -22,60 +40,69 @@ class FilteredMNIST(Dataset):
         return self.mnist_dataset[self.filtered_indices[idx]]
 
 def load_data_filtered(batch_size, classes_to_include, num_workers=4) -> tuple:
-    # Transformaciones para los datos
+    """
+    Load filtered MNIST data and create data loaders for training, validation, and testing.
+
+    Args:
+        batch_size (int): The batch size for the data loaders.
+        classes_to_include (list): The list of classes to include in the filtered dataset.
+        num_workers (int, optional): The number of worker threads for data loading. Defaults to 4.
+
+    Returns:
+        tuple: A tuple containing the data loaders for training, validation, and testing.
+    """
     transform = transforms.ToTensor()
 
-    # Carga de datos de entrenamiento
     mnist_train = datasets.MNIST(os.getcwd(), train=True, download=True, transform=transform)
 
-    # filtrar el dataset para incluir solo clases específicas
     filtered_train_dataset = FilteredMNIST(mnist_train, classes_to_include)
 
-    # División entre entrenamiento y validación
     train_size = int(0.8 * len(filtered_train_dataset))
     val_size = len(filtered_train_dataset) - train_size
     mnist_train, mnist_val = random_split(filtered_train_dataset, [train_size, val_size])
 
-    # DataLoader para entrenamiento y validación
     train_loader = DataLoader(mnist_train, batch_size=batch_size, num_workers=num_workers, shuffle=True)
     val_loader = DataLoader(mnist_val, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-    # Carga de datos de test
     mnist_test = datasets.MNIST(os.getcwd(), train=False, download=True, transform=transform)
     
-    # Filtrar el dataset de test para incluir solo clases específicas
     filtered_test_dataset = FilteredMNIST(mnist_test, classes_to_include)
 
-    # DataLoader para el conjunto de datos filtrado
     test_loader = DataLoader(filtered_test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
     return train_loader, val_loader, test_loader
 
 
 def find_low_activation_neurons(df, number1, number2, threshold=0.5):
-    # 1. Filtrar los datos por número
+    """
+    Finds the low activation neurons that are below the given threshold for both number1 and number2.
+
+    Parameters:
+    - df (DataFrame): The input DataFrame containing activation values.
+    - number1 (int): The first number to compare.
+    - number2 (int): The second number to compare.
+    - threshold (float): The threshold value for determining low activation.
+
+    Returns:
+    - intersection_neurons (list): A list of indices of the low activation neurons that are below the threshold for both number1 and number2.
+    """
     df_num1 = df[df['Number'] == number1].drop(columns=['Number'])
     df_num2 = df[df['Number'] == number2].drop(columns=['Number'])
 
-    # 2. Calcular la media de las activaciones
     mean_num1 = df_num1.mean()
     mean_num2 = df_num2.mean()
 
-    # 3. Identificar las neuronas con media inferior al 50% del valor máximo de la media
     threshold_num1 = threshold * mean_num1.max()
     threshold_num2 = threshold * mean_num2.max()
     
     low_neurons_num1 = mean_num1[mean_num1 < threshold_num1].index
     low_neurons_num2 = mean_num2[mean_num2 < threshold_num2].index
 
-    # 4. Calcular la intersección de las neuronas
     intersection_neurons = set(low_neurons_num1).intersection(set(low_neurons_num2))
 
-    # get index form str
     intersection_neurons = [int(i.split('Neuron')[1])-1 for i in intersection_neurons]
 
-    # 5. Retornar la lista de neuronas en la intersección
-    return list(intersection_neurons)
+    return intersection_neurons
 
 
 
@@ -131,3 +158,14 @@ def plot_confusion_matrix(y_true, y_pred, classes, normalize=False, title=None, 
     fig.tight_layout()
     return ax
 
+
+def remove_neurons_from_layer(layer, neurons_to_remove):
+    """ Elimina neuronas de una capa específica. """
+    new_weights = torch.cat([layer.weight.data[i:i+1] for i in range(layer.weight.data.size(0)) if i not in neurons_to_remove])
+    new_bias = torch.cat([layer.bias.data[i:i+1] for i in range(layer.bias.data.size(0)) if i not in neurons_to_remove])
+    return nn.Linear(new_weights.size(1), new_weights.size(0)), new_weights, new_bias
+
+def adjust_next_layer(layer, neurons_to_remove_from_previous_layer):
+    """ Ajusta la siguiente capa eliminando las columnas de los pesos. """
+    new_weights = torch.cat([layer.weight.data[:, i:i+1] for i in range(layer.weight.data.size(1)) if i not in neurons_to_remove_from_previous_layer], 1)
+    return nn.Linear(new_weights.size(1), new_weights.size(0)), new_weights
