@@ -9,6 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
+from sklearn.decomposition import PCA
 
 
 class FilteredMNIST(Dataset):
@@ -169,3 +170,65 @@ def adjust_next_layer(layer, neurons_to_remove_from_previous_layer):
     """ Ajusta la siguiente capa eliminando las columnas de los pesos. """
     new_weights = torch.cat([layer.weight.data[:, i:i+1] for i in range(layer.weight.data.size(1)) if i not in neurons_to_remove_from_previous_layer], 1)
     return nn.Linear(new_weights.size(1), new_weights.size(0)), new_weights
+
+def weight_statistics(model, layer_name):
+    weights = getattr(model, layer_name).weight.data
+    stats = {
+        "mean": torch.mean(weights).item(),
+        "std_dev": torch.std(weights).item(),
+        "max": torch.max(weights).item(),
+        "min": torch.min(weights).item()
+    }
+    return stats
+
+def plot_weights(model, layer_name):
+    weights = getattr(model, layer_name).weight.data
+    plt.matshow(weights)
+    plt.colorbar()
+    plt.title(f'Weights {layer_name}')
+    plt.xlabel('Input')
+    plt.ylabel('Nurons')
+    plt.show()
+
+def plot_weight_histograms(weights1, weights2, layer_index, label1='Model 1', label2='Model 2'):
+    plt.figure(figsize=(12, 6))
+
+    # Layer 1
+    plt.subplot(1, 2, 1)
+    plt.hist(weights1[layer_index].flatten(), bins=50, alpha=0.5, label=label1)
+    plt.hist(weights2[layer_index].flatten(), bins=50, alpha=0.5, label=label2)
+    plt.title(f'Histogram of Weights - Layer {layer_index + 1}')
+    plt.xlabel('Weight Value')
+    plt.ylabel('Frequency')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# Flatten the weights for PCA
+# Each neuron's weights become a single vector
+
+def calculate_pca(weights, n_components=2):
+    flattened_weights = weights.reshape(weights.shape[0], -1)
+
+    # Apply PCA to reduce the dimensions to 2 for visualization
+    pca = PCA(n_components=n_components)
+    reduced_weights = pca.fit_transform(flattened_weights)
+
+    return reduced_weights[:flattened_weights.shape[0], :]
+
+def plot_pca(weights1, weights2, layer_index):
+
+    # Calculate PCA for each model
+    reduced_weights_model_1 = calculate_pca(weights1[layer_index])
+    reduced_weights_model_2 = calculate_pca(weights2[layer_index])
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    plt.scatter(reduced_weights_model_1[:, 0], reduced_weights_model_1[:, 1], label='Model Original', alpha=0.7, marker='o', c='b')
+    plt.scatter(reduced_weights_model_2[:, 0], reduced_weights_model_2[:, 1], label='Model Pruning', alpha=0.7, marker='o' , c='r')
+    plt.title(f'PCA of Weights in the {layer_index+1} Layer')
+    plt.xlabel('Principal Component 1')
+    plt.ylabel('Principal Component 2')
+    plt.legend()
+    plt.show()
