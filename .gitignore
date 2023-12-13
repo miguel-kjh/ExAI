@@ -3,6 +3,6 @@ lightning_logs/
 exai/
 __pycache__/
 #models/
-#activations/
+activations/
 csv_logs/
 tb_logs/

@@ -83,16 +83,16 @@ if __name__ == "__main__":
     model.eval()
     print(model)
 
-    p = PruningMLP([0,1])
+    p = PruningMLP([0,1,2,3,4,5])
     df = pd.read_csv("experiments/activations/activations_minist_model.csv")
     model_2 = p.prune(model, df, {'layer_1': 0.5, 'layer_2': 0.25})
     print(model_2)
 
-    """bottelnet_checkpoint = 'experiments/checkpoints/mnist_model_bottel_neck.ckpt'
+    bottelnet_checkpoint = 'experiments/checkpoints/mnist_model_bottel_neck.ckpt'
     model_bottelnet = MNISTModelWithBottelNeck.load_from_checkpoint(bottelnet_checkpoint)
     model_bottelnet.eval()
     print(model_bottelnet)
 
     df = pd.read_csv("experiments/activations/activations_minist_model_bottel_neck.csv")
     model_bottelnet_2 = p.prune(model_bottelnet, df, {'layer_2': 0.25, 'layer_3': 0.25})
-    print(model_bottelnet_2)"""
+    print(model_bottelnet_2)
