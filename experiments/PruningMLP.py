@@ -58,23 +58,23 @@ class PruningMLP:
         for layer_name, mask in mask_indices.items():
             if len(mask) > 0:
                 # Asumimos que las capas están nombradas de forma estándar (layer_1, layer_2, etc.)
-                current_layer = getattr(model, layer_name)
+                current_layer = getattr(model_copy, layer_name)
                 next_layer_name = f"layer_{int(layer_name.split('_')[1]) + 1}"
 
                 # Eliminar neuronas de la capa actual
                 new_layer, new_weights, new_biases = self.remove_neurons_from_layer(current_layer, mask)
-                setattr(model, layer_name, new_layer)
-                model._modules[layer_name].weight.data = new_weights
-                model._modules[layer_name].bias.data = new_biases
+                setattr(model_copy, layer_name, new_layer)
+                model_copy._modules[layer_name].weight.data = new_weights
+                model_copy._modules[layer_name].bias.data = new_biases
 
                 # Ajustar la siguiente capa si existe
-                if hasattr(model, next_layer_name):
-                    next_layer = getattr(model, next_layer_name)
+                if hasattr(model_copy, next_layer_name):
+                    next_layer = getattr(model_copy, next_layer_name)
                     new_next_layer, new_next_weights = self.adjust_next_layer(next_layer, mask)
-                    setattr(model, next_layer_name, new_next_layer)
-                    model._modules[next_layer_name].weight.data = new_next_weights
+                    setattr(model_copy, next_layer_name, new_next_layer)
+                    model_copy._modules[next_layer_name].weight.data = new_next_weights
 
-        return model
+        return model_copy
     
 # main
 if __name__ == "__main__":
