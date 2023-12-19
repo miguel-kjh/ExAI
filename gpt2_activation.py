@@ -14,46 +14,17 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings("ignore")
 
-class GPT2MLPWithFFNOutput(GPT2MLP):
+class GPT2MLPActivations(GPT2MLP):
 
     def __init__(self,  intermediate_size, config):
         super().__init__(intermediate_size, config)
-        self.max_activation_ffn = {
-            "c_fc": {
-                "max_index": [],
-                "max_weight": [],
-            },
-            "c_proj": {
-                "max_index": [],
-                "max_weight": [],
-            },
-        }
-
-    def _normalize(self, x: torch.FloatTensor) -> torch.FloatTensor:
-        return x / ((x ** 2).sum(dim=-1, keepdim=True) ** 0.5)
-    
-    def _get_max_activation(self, x: torch.FloatTensor) -> Tuple[int, int]:
-        norm_x = self._normalize(x)
-        max_val = torch.max(norm_x)
-        max_pos = torch.where(norm_x == max_val)
-        return (max_pos[0].item(), max_pos[1].item(), max_pos[2].item())
-    
-    def _get_max_info(self, weigths: torch.FloatTensor, x: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor]:
-        max_index = self._get_max_activation(x)
-        max_weight = weigths[:, max_index[2]]
-        return max_index, max_weight
-    
-    def _recollect_max_info(self, weigths: torch.FloatTensor, x: torch.FloatTensor, layer_name: str) -> None:
-        max_index, max_weight = self._get_max_info(weigths, x)
-        self.max_activation_ffn[layer_name]['max_index'] = max_index
-        self.max_activation_ffn[layer_name]['max_weight'] = max_weight.cpu().numpy()
+        self.activations = []
 
     def forward(self, hidden_states: Optional[Tuple[torch.FloatTensor]]) -> torch.FloatTensor:
         hidden_states = self.c_fc(hidden_states)
-        self._recollect_max_info(self.c_fc.weight, hidden_states, 'c_fc')
         hidden_states = self.act(hidden_states)
+        self.activations.append(hidden_states.detach().cpu().numpy())
         hidden_states = self.c_proj(hidden_states)
-        self._recollect_max_info(self.c_proj.weight, hidden_states, 'c_proj')
         hidden_states = self.dropout(hidden_states)
         return hidden_states
 
@@ -62,7 +33,7 @@ class GPT2LayerWithFFNOutput(GPT2Block):
         super().__init__(config)
         hidden_size = config.hidden_size
         inner_dim = config.n_inner if config.n_inner is not None else 4 * hidden_size
-        self.mlp = GPT2MLPWithFFNOutput(inner_dim, config)
+        self.mlp = GPT2MLPActivations(inner_dim, config)
 
 class GPT2ModelWithFFNOutput(GPT2Model):
     def __init__(self, config):
@@ -75,9 +46,9 @@ class LLMHeadModelWithFFNOutput(GPT2LMHeadModel):
         super().__init__(config)
         self.transformer = GPT2ModelWithFFNOutput(config)
 
-    def get_max_activation_ffn(self):
+    def get_activation_ffn(self):
         return {
-            f"Layer {i}": self.transformer.h[i].mlp.max_activation_ffn
+            f"Layer {i}": self.transformer.h[i].mlp.activations
             for i in range(len(self.transformer.h))
         }
 
@@ -101,15 +72,18 @@ for t in tqdm(text, desc="Text"):
 
     outputs_tokens = model.generate(input_ids, max_length=1)
     output_text = tokenizer.decode(outputs_tokens[0], skip_special_tokens=True)
-    print(output_text)
+    #print(output_text)
 
-    max_activation_ffn = model.get_max_activation_ffn()
+    max_activation_ffn = model.get_activation_ffn()
+    #print(max_activation_ffn)
     
     recollection[output_text] = max_activation_ffn
 
-print(recollection.keys())
+for key, value in recollection.items():
+    print(key)
+    print(value['Layer 0'][0].shape)
 
 #save max_activation_ffn in pkl file
-with open('max_activation_ffn.pkl', 'wb') as f:
-    pickle.dump(recollection, f)
+"""with open('max_activation_ffn.pkl', 'wb') as f:
+    pickle.dump(recollection, f)"""
 
