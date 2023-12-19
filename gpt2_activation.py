@@ -23,6 +23,7 @@ class GPT2MLPActivations(GPT2MLP):
     def forward(self, hidden_states: Optional[Tuple[torch.FloatTensor]]) -> torch.FloatTensor:
         hidden_states = self.c_fc(hidden_states)
         hidden_states = self.act(hidden_states)
+        #TODO: normalize the vector to have unit norm (l2 norm)
         self.activations.append(hidden_states.detach().cpu().numpy())
         hidden_states = self.c_proj(hidden_states)
         hidden_states = self.dropout(hidden_states)
@@ -79,9 +80,11 @@ for t in tqdm(text, desc="Text"):
     
     recollection[output_text] = max_activation_ffn
 
+#TODO: why the dimension of the vector is 1,4,3072? Where is the 4 coming from?
 for key, value in recollection.items():
     print(key)
-    print(value['Layer 0'][0].shape)
+    print(value['Layer 0'][0][0][-1])
+    break
 
 #save max_activation_ffn in pkl file
 """with open('max_activation_ffn.pkl', 'wb') as f:
