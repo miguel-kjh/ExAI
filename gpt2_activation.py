@@ -18,13 +18,20 @@ class GPT2MLPActivations(GPT2MLP):
 
     def __init__(self,  intermediate_size, config):
         super().__init__(intermediate_size, config)
-        self.activations = []
+        self._activations = []
 
+    @property
+    def activations(self):
+        return self._activations
+
+    def _normalize(self, x: torch.FloatTensor) -> torch.FloatTensor:
+        x_mean = torch.mean(x, dim=1, keepdim=True)[0]
+        return x_mean / torch.norm(x_mean, p=2, dim=-1, keepdim=True)
+    
     def forward(self, hidden_states: Optional[Tuple[torch.FloatTensor]]) -> torch.FloatTensor:
         hidden_states = self.c_fc(hidden_states)
         hidden_states = self.act(hidden_states)
-        #TODO: normalize the vector to have unit norm (l2 norm)
-        self.activations.append(hidden_states.detach().cpu().numpy())
+        self._activations.append(self._normalize(hidden_states).cpu().detach().numpy())
         hidden_states = self.c_proj(hidden_states)
         hidden_states = self.dropout(hidden_states)
         return hidden_states
@@ -48,14 +55,15 @@ class LLMHeadModelWithFFNOutput(GPT2LMHeadModel):
         self.transformer = GPT2ModelWithFFNOutput(config)
 
     def get_activation_ffn(self):
-        return {
-            f"Layer {i}": self.transformer.h[i].mlp.activations
+        return [
+            self.transformer.h[i].mlp.activations
             for i in range(len(self.transformer.h))
-        }
+        ]
 
 
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 config = GPT2Config.from_pretrained('gpt2')
+num_layers = config.n_layer
 model = LLMHeadModelWithFFNOutput(config)
 
 # Asegúrate de que el modelo esté en modo de evaluación
@@ -65,28 +73,32 @@ model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-text = ["Nice to meet you", "Hello!", "How are you?"]
+text = ["128 ", "35 ", "47 ", "199 "]
 recollection = {}
 
-for t in tqdm(text, desc="Text"):
+for t in text:
     input_ids = torch.tensor([tokenizer.encode(t)]).to(device)
+    tokens = tokenizer.tokenize(t)
+    print(tokens)
 
-    outputs_tokens = model.generate(input_ids, max_length=1)
+    outputs_tokens = model.generate(input_ids, max_length=2, pad_token_id=tokenizer.eos_token_id)
     output_text = tokenizer.decode(outputs_tokens[0], skip_special_tokens=True)
-    #print(output_text)
+    print(output_text)
 
-    max_activation_ffn = model.get_activation_ffn()
-    #print(max_activation_ffn)
+    activation_ffn = model.get_activation_ffn()
+    print(len(activation_ffn))
+    print(activation_ffn[0][0].shape)
     
-    recollection[output_text] = max_activation_ffn
+    recollection[t] = {
+        "output_text": output_text
+    }
 
-#TODO: why the dimension of the vector is 1,4,3072? Where is the 4 coming from?
-for key, value in recollection.items():
-    print(key)
-    print(value['Layer 0'][0][0][-1])
-    break
+    for i in range(num_layers):
+        recollection[t][i] = activation_ffn[i][0]
 
-#save max_activation_ffn in pkl file
-"""with open('max_activation_ffn.pkl', 'wb') as f:
-    pickle.dump(recollection, f)"""
+print(recollection)
+
+#save in pickle
+with open('recollection.pickle', 'wb') as handle:
+    pickle.dump(recollection, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
