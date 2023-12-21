@@ -1,5 +1,7 @@
 import pickle
+import pandas as pd
 import torch
+from tqdm import tqdm
 from transformers import GPT2Tokenizer, GPT2Config
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
 import numpy as np
@@ -16,7 +18,9 @@ warnings.filterwarnings("ignore")
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 config = GPT2Config.from_pretrained('gpt2')
 num_layers = config.n_layer
+num_neurons = config.hidden_size*4
 model = LLMHeadModelWithFFNOutput(config)
+
 
 # Asegúrate de que el modelo esté en modo de evaluación
 model.eval()
@@ -25,32 +29,35 @@ model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-text = ["128 ", "35 ", "47 ", "199 "]
-recollection = {}
+text = ["Obama ", "Donal ", "Trump ", "Joe "]
 
-for t in text:
+columns = ["Input_text", "Output_text"]
+for layer_index in range(num_layers):
+    columns += [f'layer_{layer_index+1}_Neuron{i+1}' for i in range(num_neurons)]
+
+df = pd.DataFrame(index=range(len(text)), columns=columns)
+                  
+for t in tqdm(text, desc="Texts"): 
     input_ids = torch.tensor([tokenizer.encode(t)]).to(device)
-    tokens = tokenizer.tokenize(t)
-    print(tokens)
+    #tokens = tokenizer.tokenize(t)
 
     outputs_tokens = model.generate(input_ids, max_length=2, pad_token_id=tokenizer.eos_token_id)
     output_text = tokenizer.decode(outputs_tokens[0], skip_special_tokens=True)
-    print(output_text)
 
     activation_ffn = model.get_activation_ffn()
-    print(len(activation_ffn))
-    print(activation_ffn[0][0].shape)
     
-    recollection[t] = {
-        "output_text": output_text
+    row = {
+        "Input_text": t,
+        "Output_text": output_text
     }
 
-    for i in range(num_layers):
-        recollection[t][i] = activation_ffn[i][0]
+    for layer_index in range(num_layers):
+        for neuron_index in range(num_neurons):
+            row[f'layer_{layer_index+1}_Neuron{neuron_index+1}'] = activation_ffn[layer_index][0][0][neuron_index]
 
-print(recollection)
+    df.loc[len(df)] = row
+
 
 #save in pickle
 with open('recollection.pickle', 'wb') as handle:
-    pickle.dump(recollection, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
+    pickle.dump(df, handle, protocol=pickle.HIGHEST_PROTOCOL)
