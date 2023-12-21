@@ -21,7 +21,20 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 # Datos de entrada
-text = ["Obama ", "Donal ", "Trump ", "Joe "]
+text = ['The dog is', 'The cat is', 'The dog is cute', 'The cat is cute', 'The dog is cute and', 'The cat is cute and', 
+        'The dog is cute and the', 'The cat is cute and the', 'The dog is cute and the cat', 'The cat is cute and the dog',
+          'The dog is cute and the cat is', 'The cat is cute and the dog is', 'The dog is cute and the cat is cute', 
+          'The cat is cute and the dog is cute', 'The dog is cute and the cat is cute and', 'The cat is cute and the dog is cute and', 
+          'The dog is cute and the cat is cute and the', 'The cat is cute and the dog is cute and the', 'The dog is cute and the cat is cute and the dog', 
+          'The cat is cute and the dog is cute and the cat', 'The dog is cute and the cat is cute and the dog is', 'The cat is cute and the dog is cute and the cat is', 
+          'The dog is cute and the cat is cute and the dog is cute', 'The cat is cute and the dog is cute and the cat is cute', 
+          'The dog is cute and the cat is cute and the dog is cute and', 'The cat is cute and the dog is cute and the cat is cute and', 
+          'The dog is cute and the cat is cute and the dog is cute and the', 'The cat is cute and the dog is cute and the cat is cute and the', 
+          'The dog is cute and the cat is cute and the dog is cute and the cat', 'The cat is cute and the dog is cute and the cat is cute and the dog', 
+          'The dog is cute and the cat is cute and the dog is cute and the cat is', 'The cat is cute and the dog is cute and the cat is cute and the dog is', 
+          'The dog is cute and the cat is cute and the dog is cute and the cat is cute', 'The cat is cute and the dog is cute and the cat is cute and the dog is cute', 
+          'The dog is cute and the cat is cute and the dog is cute and the cat is cute and', 'The cat is cute and the dog is cute and the cat is cute and the dog is cute and', 
+          'The dog is cute and the cat is cute and the dog is cute and the cat is cute and']
 
 # Preparar columnas para el DataFrame
 columns = ["Input_text", "Output_text"] + [f'layer_{i+1}_Neuron{j+1}' for i in range(num_layers) for j in range(num_neurons)]
