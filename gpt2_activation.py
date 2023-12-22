@@ -12,7 +12,7 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 config = GPT2Config.from_pretrained('gpt2')
 num_layers = config.n_layer
 num_neurons = config.hidden_size * 4
-max_length = 2
+max_length = 6
 folder = os.path.join('experiments', "activations")
 file = os.path.join(folder, "gpt2.pickle")
 model = LLMHeadModelWithFFNOutput(config)
@@ -21,7 +21,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 # Datos de entrada
-text = ['The dog is', 'The cat is', 'The dog is cute', 'The cat is cute', 'The dog is cute and']
+text = ['1,2,3', '4,5,6', '7,8,9', '10,11,12', '13,14,15', '16,17,18', '19,20,21', '22,23,24', '25,26,27', '28,29,30']
 
 # Preparar columnas para el DataFrame
 columns = ["Input_text", "Output_text"] + [f'layer_{i+1}_Neuron{j+1}' for i in range(num_layers) for j in range(num_neurons)]

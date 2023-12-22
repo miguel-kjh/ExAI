@@ -17,8 +17,12 @@ class GPT2MLPActivations(GPT2MLP):
 
     def _normalize(self, x: torch.FloatTensor) -> torch.FloatTensor:
         x_mean = torch.mean(x, dim=1, keepdim=True)[0]
-        return x_mean / torch.norm(x_mean, p=2, dim=-1, keepdim=True)
-
+        # normalize between 0 and 1
+        x_min = torch.min(x_mean, dim=1, keepdim=True)[0]
+        x_max = torch.max(x_mean, dim=1, keepdim=True)[0]
+        x_norm = (x_mean - x_min) / (x_max - x_min)
+        return x_norm
+        
     def forward(self, hidden_states: Optional[Tuple[torch.FloatTensor]]) -> torch.FloatTensor:
         hidden_states = self.c_fc(hidden_states)
         hidden_states = self.act(hidden_states)
