@@ -22,7 +22,7 @@ def split_dataset(file_path, train_ratio=0.9):
         return lines[:train_size], lines[train_size:]
 
 # Preparar el conjunto de datos
-file_path = os.path.join('datasets', 'dataset.txt')
+file_path = os.path.join('datasets', 'clean_dataset.txt')
 train_lines, test_lines = split_dataset(file_path)
 
 # Guardar los conjuntos de datos divididos
