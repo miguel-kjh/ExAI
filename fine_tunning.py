@@ -43,7 +43,7 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 training_args = TrainingArguments(
     output_dir="./gpt2-finetuned",  # Directorio donde se guardarán los modelos
     overwrite_output_dir=True,
-    #evaluation_strategy="epoch",
+    evaluation_strategy="epoch",
     num_train_epochs=5,  # Ajusta esto según tus necesidades
     per_device_train_batch_size=4,  # Ajusta según los recursos de tu máquina
     save_steps=10_000,
