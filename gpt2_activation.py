@@ -22,7 +22,9 @@ model.to(device)
 
 # Datos de entrada
 text = [
-    "two hundred forty five million one hundred forty five thousand one hundred twenty six:2451451"
+    "three hundred seventy two million four hundred nine thousand six hundred seventy one:",
+    "three hundred seventy two million four hundred nine thousand six hundred seventy two:",
+    "one:",
 ]  # Ejemplos adicionales
 
 # Procesamiento de textos
