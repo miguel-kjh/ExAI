@@ -34,7 +34,7 @@ with open(test_path, "w", encoding="utf-8") as file:
     file.writelines(test_lines)
 
 # Preparar los conjuntos de datos
-train_dataset = TextDataset(tokenizer=tokenizer, file_path=train_path, block_size=128)
+train_dataset = TextDataset(tokenizer=tokenizer, file_path=train_path, block_size=32)
 test_dataset = TextDataset(tokenizer=tokenizer, file_path=test_path, block_size=32)
 
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
