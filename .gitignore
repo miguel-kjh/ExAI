@@ -6,3 +6,5 @@ __pycache__/
 activations/
 csv_logs/
 tb_logs/
+wandb/
+gpt2-finetuned/
