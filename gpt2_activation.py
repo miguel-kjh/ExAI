@@ -41,6 +41,7 @@ activation_ffn_array = np.stack(activations)
 
 # Redimensionar el array para obtener la forma deseada
 activation_ffn_array = activation_ffn_array.reshape(num_layers, len(text), -1, num_neurons)
+print(activation_ffn_array.shape)
 
 # save in pickle file
 os.makedirs(folder, exist_ok=True)
