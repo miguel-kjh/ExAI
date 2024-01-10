@@ -12,7 +12,7 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 config = GPT2Config.from_pretrained('gpt2')
 num_layers = config.n_layer
 num_neurons = config.hidden_size * 4
-max_length = 6
+max_length = 15
 folder = os.path.join('experiments', "activations")
 file = os.path.join(folder, "gpt2.pickle")
 model = LLMHeadModelWithFFNOutput(config)
@@ -21,7 +21,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 # Datos de entrada
-text = ['1,2,3', '3,4,5', '4,5,6']  # Ejemplos adicionales
+text = [
+    "The war lasted from the year 1732 to the year 17"
+]  # Ejemplos adicionales
 
 # Procesamiento de textos
 activations = []
