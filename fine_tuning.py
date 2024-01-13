@@ -11,6 +11,7 @@ warnings.filterwarnings("ignore")
 
 # Cargar el modelo y el tokenizador
 model_name = "gpt2"  # Puedes cambiar esto por otra variante de GPT-2 si lo prefieres
+block_size = 16  # Tamaño del bloque de texto para el entrenamiento
 model = GPT2LMHeadModel.from_pretrained(model_name)
 tokenizer = GPT2Tokenizer.from_pretrained(model_name)
 
@@ -34,8 +35,8 @@ with open(test_path, "w", encoding="utf-8") as file:
     file.writelines(test_lines)
 
 # Preparar los conjuntos de datos
-train_dataset = TextDataset(tokenizer=tokenizer, file_path=train_path, block_size=32)
-test_dataset = TextDataset(tokenizer=tokenizer, file_path=test_path, block_size=32)
+train_dataset = TextDataset(tokenizer=tokenizer, file_path=train_path, block_size=block_size)
+test_dataset = TextDataset(tokenizer=tokenizer, file_path=test_path, block_size=block_size)
 
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
